@@ -288,3 +288,79 @@ export const apiMiddleware =
 // Action Creator for "api/makeCall" dispatch
 export const fetchData = (payload) => ({ type: "api/makeCall", payload });
 ```
+
+## 🚀 REACT WORD EXAMPLE
+
+- ### Dispatch Middleware Function
+
+  ```javascript
+  useEffect(() => {
+    dispatch(
+      fetchData({
+        url: "https://dummyjson.com/products",
+        onStart: fetchProducts().type,
+        onSuccess: loadAllProducts().type,
+        onError: fetchProductsError().type,
+      }),
+    );
+
+    dispatch(
+      fetchData({
+        url: "https://dummyjson.com/carts/15",
+        onStart: fetchCartItems().type,
+        onSuccess: loadCartItems().type,
+        onError: fetchCartItemsError().type,
+      }),
+    );
+  }, []);
+  ```
+
+- ### Middleware Function
+
+  ```javascript
+  export const apiMiddleware =
+    ({ dispatch }) =>
+    (next) =>
+    (action) => {
+      if (action.type === "api/makeCall") {
+        next(action);
+        const { url, onStart, onSuccess, onError } = action.payload;
+        dispatch({ type: onStart });
+
+        fetch(url)
+          .then((res) => res.json())
+          .then((data) => {
+            dispatch({ type: onSuccess, payload: data.products });
+            console.log({ type: onSuccess, payload: data.products });
+          })
+          .catch((err) => {
+            dispatch({ type: onError, payload: err });
+          });
+      } else {
+        next(action);
+      }
+    };
+
+  export const fetchData = (payload) => ({ type: "api/makeCall", payload });
+  ```
+
+- ### Store
+
+  ```javascript
+  import { apiMiddleware } from "./middleware/api";
+  import reducerCart from "./slices/cartSlice";
+  import reducerProducts from "./slices/productsSlice";
+  import reducerWishList from "./slices/wishListSlice";
+  import { configureStore } from "@reduxjs/toolkit";
+
+  export const store = configureStore({
+    reducer: {
+      products: reducerProducts,
+      cartItems: reducerCart,
+      wishList: reducerWishList,
+    },
+
+    middleware: (getDefaultMidlleware) =>
+      getDefaultMidlleware().concat(apiMiddleware),
+  });
+  ```
